@@ -7,39 +7,44 @@ import numpy as np
 
 def modifiedEulerMethod(function, initial_cond, parting, division=10 ** 5):
     """
-    Funkcja rozwiązuje równanie różniczkowe zadane w postaci: x''(t) = lamb * f(t, x, x') z określonymi warunkami
+    Funkcja rozwiązuje równanie różniczkowe zadane w postaci: x''(t) = f(t, x, x') z określonymi warunkami
     początkowymi na danym przedziale np. na przedziale (0, 12.5) z następującymi warunkami: x(0) = 0,
-    x'(0) = 2 :param lamb: lambda :param function: funkcja zależąca od zmiennej; f(t, x, x') :param initial_cond:
-    warunek początkowy; wartości funkcji w punkcie parting[0] :param parting: przedział, dla którego otrzymamy
-    wartości funkcji po rozwiązaniu równania różniczkowego :param division: podział przedziału na division części
-    :return: funkcja zwraca dwie tablice - pierwsza z nich to podział odcinka parting na division części,
+    x'(0) = 2 :param function: funkcja f(t, x, x') :param initial_cond: warunek początkowy :param parting: przedział,
+    dla którego otrzymamy wartości funkcji po rozwiązaniu równania różniczkowego :param division: podział przedziału na
+    division części:return: funkcja zwraca dwie tablice - pierwsza z nich to podział odcinka parting na division części,
     druga tablica z kolei zwraca wartości szukanej funkcji dla odpowiadających jej punktów z pierwszej tablicy
     """
+    # Sprawdzenie, czy warunek początkowy jest zadany dla punktu z przedziału parting
     if parting[0] <= initial_cond[0][0] <= parting[1]:
+        # podział odcinka parting względem punktu
         left = initial_cond[0][0] - parting[0]
         right = parting[1] - initial_cond[0][0]
+        # podział na równe części
         left_div = int(left / (left + right) * division)
         right_div = int(right / (left + right) * division)
+        # tworzenie pustych tablicy na wartości. y_list to tablica przechowująca wartości x', potrzebne do obliczenia x
         x_list = left_div * [0]
         y_list = left_div * [0]
         w_list = left_div * [0]
-        w = initial_cond[0][0]
-        c = left_div - 1
+        w = initial_cond[0][0]  # ustawienie wartości w na zadaną w warunku początkowym
+        c = left_div - 1        # ustawienie licznika
         x_list.append(initial_cond[0][1])
         y_list.append(initial_cond[1][1])
         w_list.append(w)
-        if left_div != 0:
-            left = left / left_div
+        if left_div != 0:       # sprawdzenie, czy warunek początkowy nie był zadany na lewym krańcu przedziału
+            left = left / left_div      # ustalenie podziału odcinka
             while c >= 0:
+                # korzystamy z odwróconej metody Eulera
                 x_list[c] = x_list[c + 1] - left * y_list[c + 1]
                 y_list[c] = y_list[c + 1] - left * function(w, x_list[c + 1], y_list[c + 1])
                 w -= left
                 w_list[c] = w
                 c -= 1
-        if right_div != 0:
+        if right_div != 0:      # sprawdzenie, czy warunek początkowy nie był zadany na prawym krańcu przedziału
             w = initial_cond[0][0]
-            right = right / right_div
+            right = right / right_div   # ustalenie podziału odcinka
             while w <= parting[1] - right:
+                # korzystamy z jawnej metody Eulera
                 x_list.append(x_list[-1] + right * y_list[-1])
                 y_list.append(y_list[-1] + right * function(w, x_list[-2], y_list[-1]))
                 w += right
@@ -49,19 +54,22 @@ def modifiedEulerMethod(function, initial_cond, parting, division=10 ** 5):
 
 def shootingMethod(function, boundary_cond, parting, a_part, division=10 ** 5 +1, epsilon=0.001):
     """
-    :param function:
-    :param boundary_cond:
-    :param parting:
-    :param division:
-    :param epsilon:
-    :return:
+    Funkcja rozwiązuje zagadnienie brzegowe dla równania różniczkowego zadanego w postaci: x''(t) = f(t, x, x')
+    :param function: funkcja f(t, x, x')
+    :param boundary_cond: warunkek brzegowy zadany w postaci: [(t_0, x_0), (t_1, x_1)]
+    :param parting: przedział, dla jakiego chcemy mieć tablicę wartości funkcji x
+    :param a_part: przedział, z którego będziemy szukać odpowiedniego parametru c
+    :param division: podział przedziału parting
+    :param epsilon: parametr, który określa nam dokładność, z jaką chcemy rozwiązać warunek brzegowy
+    :return: c, gdzie c jest wartością x'(t_0)
     """
+    # sprawdzanie wartości na krańcach przedziału a_part. Szukanie c metodą bisekcji
     a = modifiedEulerMethod(function, [boundary_cond[0], (boundary_cond[0][0], a_part[0])], parting, division)[1][-1] - \
         boundary_cond[1][1]
     b = modifiedEulerMethod(function, [boundary_cond[0], (boundary_cond[0][0], a_part[1])], parting, division)[1][-1] - \
         boundary_cond[1][1]
     if a * b >= 0:
-        raise Exception("coś nie tak z przedziałem XD")
+        raise Exception("Dobierz inny przedział a_part")
     while True:
         c = (a_part[1] + a_part[0]) / 2
         p = modifiedEulerMethod(function, [boundary_cond[0], (boundary_cond[0][0], c)], parting, division)
@@ -81,7 +89,7 @@ def analyticMethodSODE(list_of_coefs, initial_cond, parting, div=10**5):
     :param list_of_coefs: współczynniki w kolejności: b, c
     :param initial_cond: warunki początkowe zadane w postaci: [(t0, y(t0) = y1), (t0, y'(t0) = y2)]
     :param parting: przedział, dla jakiego chcemy otrzymać wartości funkcji
-    :return:
+    :return:  arguments_list, values_list - listy argumentów i wartości
     """
     if initial_cond[0][0] != initial_cond[1][0]:
         raise ValueError('Pochodna jest w innym punkcie!')
@@ -90,10 +98,12 @@ def analyticMethodSODE(list_of_coefs, initial_cond, parting, div=10**5):
         raise ValueError('Źle dobrane współczynniki! Współczynnik przy drugiej pochodnej musi być różny od zera!')
     values_list = []
     arguments_list = []
+    # obliczanie wielomianu charakterystycznego
     delta_r = b ** 2 - 4 * c
     if delta_r == 0:
         r = -b/(2*a)
         expon = math.exp(r*initial_cond[0][0])
+        # wyznaczanie współczynników z układu równań
         A = np.array([[expon, initial_cond[1][0] * expon], [r * expon, r * initial_cond[1][0] * expon + expon]])
         B = np.array([initial_cond[0][1], initial_cond[1][1]])
         C_1, C_2 = np.linalg.inv(A).dot(B)
@@ -109,6 +119,7 @@ def analyticMethodSODE(list_of_coefs, initial_cond, parting, div=10**5):
         r2 = (math.sqrt(delta_r) - b)/(2 * a)
         exp1 = math.exp(r1 * initial_cond[0][0])
         exp2 = math.exp(r2 * initial_cond[1][0])
+        # wyznaczanie współczynników z układu równań
         A = np.array([[exp1, exp2], [r1 * exp1, r2 * exp2]])
         B = np.array([initial_cond[0][1], initial_cond[1][1]])
         C_1, C_2 = np.linalg.inv(A).dot(B)
@@ -125,6 +136,7 @@ def analyticMethodSODE(list_of_coefs, initial_cond, parting, div=10**5):
         exp = math.exp(re * initial_cond[0][0])
         sin = math.sin(im * initial_cond[0][0])
         cos = math.cos(im * initial_cond[0][0])
+        # wyznaczanie współczynników z układu równań
         A = np.array([[exp * sin, exp * cos], [re*exp*sin + exp*cos*im, re*exp*cos - exp*sin*im]])
         B = np.array([initial_cond[0][1], initial_cond[1][1]])
         C_1, C_2 = np.linalg.inv(A).dot(B)
@@ -154,6 +166,15 @@ def g_func(x):
 
 
 def initialConditionsToQ(x, f_func, g_func, fun_p_lists, eps=0.0001):
+    """
+    Funkcja wyznacza nam warunki początkowe dla fukcji Q(t) w punkcie t=0, korzystając z rozwiązania funkcji P.
+    :param x: dowolny x, dla którego znamy wartość funkcji f, g i P. Jest on potrzebny do obliczania ilorazu.
+    :param f_func: funkcja f(x)
+    :param g_func: funkcja g(x)
+    :param fun_p_lists: lista argumentów i wartości funkcji P
+    :param eps: dokładność warunków początkowych
+    :return: warunek początkowy zadany w postaci: [(0, Q(0)), (0, Q'(0))]
+    """
     for i in range(len(fun_p_lists[0])):
         if abs(fun_p_lists[0][i] - x) <= eps:
             a = fun_p_lists[1][i]

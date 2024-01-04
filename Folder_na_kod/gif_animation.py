@@ -5,7 +5,7 @@ from io import BytesIO
 import Metoda_numeryczna as sm
 import math
 
-n = 2
+n = 1
 l = 10.0
 c = 1.0
 
@@ -25,6 +25,7 @@ def create_plot(values, constant, P, Q):
     plt.plot(x, y)
     plt.xlabel(r'$x$')
     plt.ylabel(r'$u_{1}(t,x)$')
+    plt.title(rf'Drganie struny gitarowej dla $n={n}$')
     plt.grid(True)
 
     # Set y-axis limits to maintain consistency
@@ -44,7 +45,7 @@ values = np.array(P[1])
 
 # Example list of constants
 a = []
-b = 30
+b = 40
 for i in range(b):
     a.append(Q[1][len(Q[1])*i//b])
 constants_list = np.array(a)
@@ -62,7 +63,7 @@ frames[0].save(
     format='GIF',
     save_all=True,
     append_images=frames[1:],
-    duration=200,  # Set the duration between frames in milliseconds
+    duration=100,  # Set the duration between frames in milliseconds
     loop=0  # Set loop to 0 for infinite loop, or any other positive integer for a finite loop
 )
 
