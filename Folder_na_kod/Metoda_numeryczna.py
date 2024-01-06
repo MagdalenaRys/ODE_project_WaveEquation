@@ -5,7 +5,7 @@ import math
 import numpy as np
 
 
-def modifiedEulerMethod(function, initial_cond, parting, division=10 ** 5):
+def modifiedEulerMethod(function, initial_cond, rng, division=10 ** 5):
     """
     Funkcja rozwiązuje równanie różniczkowe zadane w postaci: x''(t) = f(t, x, x') z określonymi warunkami
     początkowymi na danym przedziale np. na przedziale (0, 12.5) z następującymi warunkami: x(0) = 0,
@@ -15,10 +15,10 @@ def modifiedEulerMethod(function, initial_cond, parting, division=10 ** 5):
     druga tablica z kolei zwraca wartości szukanej funkcji dla odpowiadających jej punktów z pierwszej tablicy
     """
     # Sprawdzenie, czy warunek początkowy jest zadany dla punktu z przedziału parting
-    if parting[0] <= initial_cond[0][0] <= parting[1]:
+    if rng[0] <= initial_cond[0][0] <= rng[1]:
         # podział odcinka parting względem punktu
-        left = initial_cond[0][0] - parting[0]
-        right = parting[1] - initial_cond[0][0]
+        left = initial_cond[0][0] - rng[0]
+        right = rng[1] - initial_cond[0][0]
         # podział na równe części
         left_div = int(left / (left + right) * division)
         right_div = int(right / (left + right) * division)
@@ -43,7 +43,7 @@ def modifiedEulerMethod(function, initial_cond, parting, division=10 ** 5):
         if right_div != 0:      # sprawdzenie, czy warunek początkowy nie był zadany na prawym krańcu przedziału
             w = initial_cond[0][0]
             right = right / right_div   # ustalenie podziału odcinka
-            while w <= parting[1] - right:
+            while w <= rng[1] - right:
                 # korzystamy z jawnej metody Eulera
                 x_list.append(x_list[-1] + right * y_list[-1])
                 y_list.append(y_list[-1] + right * function(w, x_list[-2], y_list[-1]))
@@ -52,27 +52,28 @@ def modifiedEulerMethod(function, initial_cond, parting, division=10 ** 5):
         return w_list, x_list
 
 
-def shootingMethod(function, boundary_cond, parting, a_part, division=10 ** 5 +1, epsilon=0.001):
+def shootingMethod(function, boundary_cond, a_part, division=10 ** 5 + 1, epsilon=0.001):
     """
     Funkcja rozwiązuje zagadnienie brzegowe dla równania różniczkowego zadanego w postaci: x''(t) = f(t, x, x')
     :param function: funkcja f(t, x, x')
     :param boundary_cond: warunkek brzegowy zadany w postaci: [(t_0, x_0), (t_1, x_1)]
-    :param parting: przedział, dla jakiego chcemy mieć tablicę wartości funkcji x
+    :param rng: przedział, dla jakiego chcemy mieć tablicę wartości funkcji x
     :param a_part: przedział, z którego będziemy szukać odpowiedniego parametru c
     :param division: podział przedziału parting
     :param epsilon: parametr, który określa nam dokładność, z jaką chcemy rozwiązać warunek brzegowy
     :return: c, gdzie c jest wartością x'(t_0)
     """
     # sprawdzanie wartości na krańcach przedziału a_part. Szukanie c metodą bisekcji
-    a = modifiedEulerMethod(function, [boundary_cond[0], (boundary_cond[0][0], a_part[0])], parting, division)[1][-1] - \
+    rng = boundary_cond[0][0], boundary_cond[1][0]
+    a = modifiedEulerMethod(function, [boundary_cond[0], (boundary_cond[0][0], a_part[0])], rng, division)[1][-1] - \
         boundary_cond[1][1]
-    b = modifiedEulerMethod(function, [boundary_cond[0], (boundary_cond[0][0], a_part[1])], parting, division)[1][-1] - \
+    b = modifiedEulerMethod(function, [boundary_cond[0], (boundary_cond[0][0], a_part[1])], rng, division)[1][-1] - \
         boundary_cond[1][1]
     if a * b >= 0:
         raise Exception("Dobierz inny przedział a_part")
     while True:
         c = (a_part[1] + a_part[0]) / 2
-        p = modifiedEulerMethod(function, [boundary_cond[0], (boundary_cond[0][0], c)], parting, division)
+        p = modifiedEulerMethod(function, [boundary_cond[0], (boundary_cond[0][0], c)], rng, division)
         q = p[1][-1] - boundary_cond[1][1]
         if abs(q) <= epsilon:
             return c
@@ -83,12 +84,12 @@ def shootingMethod(function, boundary_cond, parting, a_part, division=10 ** 5 +1
                 a_part = (a_part[0], c)
 
 
-def analyticMethodSODE(list_of_coefs, initial_cond, parting, div=10**5):
+def analyticMethodSODE(list_of_coefs, initial_cond, rng, div=10 ** 5):
     """
     Funkcja rozwiązuje analitycznie równanie różniczkowe jednorodne zadane w postaci: a * y''(t) + b * y'(t) + c * y(t) = 0
     :param list_of_coefs: współczynniki w kolejności: b, c
     :param initial_cond: warunki początkowe zadane w postaci: [(t0, y(t0) = y1), (t0, y'(t0) = y2)]
-    :param parting: przedział, dla jakiego chcemy otrzymać wartości funkcji
+    :param rng: przedział, dla jakiego chcemy otrzymać wartości funkcji
     :return:  arguments_list, values_list - listy argumentów i wartości
     """
     if initial_cond[0][0] != initial_cond[1][0]:
@@ -107,8 +108,8 @@ def analyticMethodSODE(list_of_coefs, initial_cond, parting, div=10**5):
         A = np.array([[expon, initial_cond[1][0] * expon], [r * expon, r * initial_cond[1][0] * expon + expon]])
         B = np.array([initial_cond[0][1], initial_cond[1][1]])
         C_1, C_2 = np.linalg.inv(A).dot(B)
-        t = parting[0]
-        delta_t = (parting[1] - parting[0])/div
+        t = rng[0]
+        delta_t = (rng[1] - rng[0]) / div
         for i in range(div):
             values_list.append(C_1*math.exp(r*t) + C_2*math.exp(r*t)*t)
             arguments_list.append(t)
@@ -123,8 +124,8 @@ def analyticMethodSODE(list_of_coefs, initial_cond, parting, div=10**5):
         A = np.array([[exp1, exp2], [r1 * exp1, r2 * exp2]])
         B = np.array([initial_cond[0][1], initial_cond[1][1]])
         C_1, C_2 = np.linalg.inv(A).dot(B)
-        t = parting[0]
-        delta_t = (parting[1] - parting[0]) / div
+        t = rng[0]
+        delta_t = (rng[1] - rng[0]) / div
         for i in range(div):
             values_list.append(C_1 * math.exp(r1 * t) + C_2 * math.exp(r2 * t))
             arguments_list.append(t)
@@ -140,8 +141,8 @@ def analyticMethodSODE(list_of_coefs, initial_cond, parting, div=10**5):
         A = np.array([[exp * sin, exp * cos], [re*exp*sin + exp*cos*im, re*exp*cos - exp*sin*im]])
         B = np.array([initial_cond[0][1], initial_cond[1][1]])
         C_1, C_2 = np.linalg.inv(A).dot(B)
-        t = parting[0]
-        delta_t = (parting[1] - parting[0]) / div
+        t = rng[0]
+        delta_t = (rng[1] - rng[0]) / div
         for i in range(div):
             values_list.append(math.exp(re*t) * (C_1 * math.sin(im*t) + C_2 * math.cos(im*t)))
             arguments_list.append(t)
